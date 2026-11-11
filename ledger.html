@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}Ledger · ChatLedger{% endblock %}
+{% block body %}
+{% if shared %}
+<header class="top"><div class="bar"><span class="brand">ChatLedger</span><span style="color:var(--muted)">Read-only view for your accountant</span></div></header>
+<main>
+{% else %}
+{% set active='ledger' %}
+<header class="top"><div class="bar">
+<a class="brand" href="/">ChatLedger</a>
+<nav aria-label="Main">
+<a href="/" aria-current="page">Ledger</a>
+<a href="/expenses/new">Add expense</a>
+<a href="/summary">Monthly summary</a>
+<a href="/settings">Settings</a>
+</nav>
+<a href="/logout">Log out</a>
+</div></header>
+<main>
+{% endif %}
+<h1>Ledger</h1>
+<p class="sub">{{ rows|length }} expense{{ '' if rows|length == 1 else 's' }}{% if flagged %}, {{ flagged }} with problems to check{% endif %}.</p>
+
+<div class="totals">
+<div><b>{{ total|inr }}</b><span>Total spend (rejected left out)</span></div>
+<div><b>{{ tax_total|inr }}</b><span>Tax included</span></div>
+</div>
+
+{% set base = '/share/' ~ token if shared else '' %}
+<form class="filters" method="get" action="{{ base or '/' }}">
+<div><label for="m">Month</label>
+<select id="m" name="month"><option value="">All months</option>
+{% for m in months %}<option value="{{ m }}" {{ 'selected' if m==month }}>{{ m }}</option>{% endfor %}</select></div>
+<div><label for="c">Category</label>
+<select id="c" name="category"><option value="">All categories</option>
+{% for c in categories %}<option {{ 'selected' if c==category }}>{{ c }}</option>{% endfor %}</select></div>
+{% if not shared %}
+<div><label for="s">Status</label>
+<select id="s" name="status"><option value="">Any status</option>
+{% for st in ['pending','approved','rejected'] %}<option value="{{ st }}" {{ 'selected' if st==status }}>{{ st|capitalize }}</option>{% endfor %}</select></div>
+{% endif %}
+<button type="submit">Apply filters</button>
+<a class="btn" href="{{ base }}/export.csv?month={{ month }}&category={{ category|urlencode }}{% if not shared %}&status={{ status }}{% endif %}">Download CSV</a>
+</form>
+
+<div class="tablewrap">
+{% if rows %}
+<table>
+<thead><tr><th>Date</th><th>Vendor</th><th>Category</th><th class="num">Amount</th><th class="num">Tax</th><th>Status</th>{% if not shared %}<th></th>{% endif %}</tr></thead>
+<tbody>
+{% for r in rows %}
+<tr class="{{ 'rejected' if r.status=='rejected' }}">
+<td style="white-space:nowrap">{{ r.expense_date.isoformat() }}</td>
+<td>
+{% if shared %}<strong>{{ r.vendor }}</strong>{% else %}<a href="/expenses/{{ r.id }}"><strong>{{ r.vendor }}</strong></a>{% endif %}
+<div style="color:var(--muted);font-size:.85rem">{% if r.invoice_number %}Inv {{ r.invoice_number }}{% endif %}{% if r.invoice_number and r.gst_number %} / {% endif %}{% if r.gst_number %}GST {{ r.gst_number }}{% endif %}</div>
+{% for f in flags[r.id] %}<span class="flag">{{ f }}</span>{% endfor %}
+</td>
+<td>{{ r.category }}</td>
+<td class="num">{{ r.amount|inr(r.currency) }}</td>
+<td class="num">{{ (r.tax or 0)|inr(r.currency) }}</td>
+<td class="st"><span class="pill {{ r.status }}">{{ r.status|capitalize }}</span></td>
+{% if not shared %}
+<td class="actions"><div class="row">
+{% if r.status != 'approved' %}<form class="inline" method="post" action="/expenses/{{ r.id }}/status"><input type="hidden" name="status" value="approved"><input type="hidden" name="back" value="/"><button class="small" type="submit">Approve</button></form>{% endif %}
+{% if r.status != 'rejected' %}<form class="inline" method="post" action="/expenses/{{ r.id }}/status"><input type="hidden" name="status" value="rejected"><input type="hidden" name="back" value="/"><button class="small danger" type="submit">Reject</button></form>{% endif %}
+</div></td>
+{% endif %}
+</tr>
+{% endfor %}
+</tbody></table>
+{% else %}
+<div class="empty">
+<p><strong>No expenses yet.</strong></p>
+{% if shared %}<p>Nothing matches these filters.</p>{% else %}<p>Send a receipt to Claude and say “Add this to my ledger”, or <a href="/expenses/new">add one by hand</a>.</p>{% endif %}
+</div>
+{% endif %}
+</div>
+</main>
+{% endblock %}

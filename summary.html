@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% set active = 'summary' %}
+{% block title %}Monthly summary · ChatLedger{% endblock %}
+{% block content %}
+<h1>Monthly summary</h1>
+<p class="sub">Spend by category. Rejected expenses are left out.</p>
+<form class="filters" method="get" action="/summary">
+<div><label for="m">Month</label>
+<select id="m" name="month">
+{% if month not in months %}<option value="{{ month }}" selected>{{ month }}</option>{% endif %}
+{% for m in months %}<option value="{{ m }}" {{ 'selected' if m==month }}>{{ m }}</option>{% endfor %}</select></div>
+<button type="submit">Show month</button>
+<a class="btn" href="/export.csv?month={{ month }}">Download CSV for {{ month }}</a>
+</form>
+<div class="totals">
+<div><b>{{ total|inr }}</b><span>Total spend in {{ month }}</span></div>
+<div><b>{{ tax|inr }}</b><span>Tax included</span></div>
+</div>
+<div class="tablewrap">
+{% if cats %}
+<table>
+<thead><tr><th>Category</th><th class="num">Expenses</th><th class="num">Tax</th><th class="num">Total</th><th>Against monthly limit</th></tr></thead>
+<tbody>
+{% for c in cats %}
+<tr>
+<td><strong>{{ c.category }}</strong></td>
+<td class="num">{{ c.count }}</td>
+<td class="num">{{ c.tax|inr }}</td>
+<td class="num">{{ c.total|inr }}</td>
+<td>{% if c.limit %}
+{% set pct = (c.total / c.limit * 100)|round|int %}
+<div class="bar-track" role="img" aria-label="{{ pct }} percent of limit"><div class="bar-fill {{ 'over' if c.total > c.limit }}" style="width:{{ [pct,100]|min }}%"></div></div>
+<span style="font-size:.85rem;color:{{ 'var(--bad)' if c.total > c.limit else 'var(--muted)' }}">{{ pct }}% of {{ c.limit|inr }}{% if c.total > c.limit %}, over limit{% endif %}</span>
+{% else %}<span style="color:var(--muted)">No limit set</span>{% endif %}</td>
+</tr>
+{% endfor %}
+</tbody></table>
+{% else %}
+<div class="empty"><p><strong>No expenses in {{ month }}.</strong></p><p>Pick another month, or send a receipt to Claude.</p></div>
+{% endif %}
+</div>
+{% endblock %}

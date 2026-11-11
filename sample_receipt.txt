@@ -1,0 +1,9 @@
+INDIGO AIRLINES (InterGlobe Aviation Ltd)
+Tax Invoice No: 6E-2611-004417
+Supplier GSTIN: 06AAACG0000A1Z5
+Date: 03/11/2026
+Passenger: Test User   Delhi (DEL) to Mumbai (BOM)
+Base fare            4,860.00
+GST @5%                243.00
+Convenience fee        297.00
+Total paid           5,400.00 INR

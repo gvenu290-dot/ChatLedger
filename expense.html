@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% set active = 'new' if is_new else 'ledger' %}
+{% block title %}{{ 'Add expense' if is_new else 'Expense #' ~ e.id }} · ChatLedger{% endblock %}
+{% block content %}
+<h1>{{ 'Add expense' if is_new else 'Expense #' ~ e.id }}</h1>
+<p class="sub">{% if is_new %}Type in a receipt by hand. Receipts sent through Claude arrive here already filled in.{% else %}Added {{ e.created_at.strftime('%d %b %Y') }} {{ 'by Claude' if e.source=='claude' else 'by hand' }}. Check every field against the receipt.{% endif %}</p>
+
+{% if error %}<div class="notice bad" role="alert">{{ error }}</div>{% endif %}
+{% if saved %}<div class="notice ok" role="status">Changes saved.</div>{% endif %}
+{% for f in flags %}<span class="flag" style="margin-bottom:8px">{{ f }}</span>{% endfor %}
+{% if not is_new and not flags %}<p class="flags-ok">No problems found for this expense.</p>{% endif %}
+
+<form method="post" action="{{ '/expenses/new' if is_new else '/expenses/' ~ e.id }}" class="card" style="margin-top:14px">
+<div class="grid">
+<div><label for="vendor">Vendor</label><input id="vendor" name="vendor" value="{{ e.vendor }}" required></div>
+<div><label for="d">Date</label><input id="d" name="expense_date" type="date" value="{{ e.expense_date.isoformat() }}" required></div>
+<div><label for="a">Total amount (tax included)</label><input id="a" name="amount" type="number" step="0.01" min="0.01" value="{{ '%.2f'|format(e.amount) if e.amount else '' }}" required></div>
+<div><label for="t">Tax (GST) amount</label><input id="t" name="tax" type="number" step="0.01" min="0" value="{{ '%.2f'|format(e.tax or 0) }}"></div>
+<div><label for="cur">Currency</label><input id="cur" name="currency" value="{{ e.currency }}" maxlength="8"></div>
+<div><label for="cat">Category</label><select id="cat" name="category">{% for c in categories %}<option {{ 'selected' if c==e.category }}>{{ c }}</option>{% endfor %}</select></div>
+<div><label for="g">Supplier GST number</label><input id="g" name="gst_number" value="{{ e.gst_number }}" maxlength="32"></div>
+<div><label for="inv">Invoice number</label><input id="inv" name="invoice_number" value="{{ e.invoice_number }}"></div>
+{% if not is_new %}<div><label for="st">Status</label><select id="st" name="status">{% for st in ['pending','approved','rejected'] %}<option value="{{ st }}" {{ 'selected' if st==e.status }}>{{ st|capitalize }}</option>{% endfor %}</select></div>{% endif %}
+</div>
+<div style="margin-top:14px"><label for="n">Notes</label><textarea id="n" name="notes" rows="3">{{ e.notes }}</textarea></div>
+<div class="row" style="margin-top:16px">
+<button class="primary" type="submit">{{ 'Add expense' if is_new else 'Save changes' }}</button>
+<a class="btn" href="/">Back to ledger</a>
+</div>
+</form>
+
+{% if not is_new %}
+<form method="post" action="/expenses/{{ e.id }}/delete" onsubmit="return confirm('Delete this expense for good? Use Reject if you only want it out of the totals.')">
+<button class="danger" type="submit">Delete expense</button>
+</form>
+{% endif %}
+{% endblock %}
